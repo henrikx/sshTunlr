@@ -11,79 +11,99 @@ using Renci.SshNet;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Threading;
+using System.Diagnostics;
+using Microsoft.Win32;
 
 namespace sshTunlr
 {
     public partial class MainForm : Form
     {
+        public static MainForm _MainForm;
         public MainForm(string path)
         {
+            _MainForm = this;
+            CheckForIllegalCrossThreadCalls = false;
             InitializeComponent();
             if (path != string.Empty && Path.GetExtension(path).ToLower() == ".stnlr"){
                 LoadProfile(path);
             }
         }
-
-        private void ConnectionButton_Click(object sender, EventArgs e)
+        BackgroundWorker SSHConnector = new BackgroundWorker();
+        
+        void SSHConnect(object sender, DoWorkEventArgs e)
         {
-            if (textBox1.Text == string.Empty) { MessageBox.Show("No hostname specified"); return;  }
-            if (textBox2.Text == string.Empty) { MessageBox.Show("No username specified"); }
-            if (!radioButton1.Checked && !radioButton2.Checked) { MessageBox.Show("No authentication specified"); return; }
-            using (var client = new SshClient(textBox1.Text, textBox2.Text, getAuth()))
+            if (_MainForm.textBox1.Text == string.Empty) { MessageBox.Show("No hostname specified"); return; }
+            if (_MainForm.textBox2.Text == string.Empty) { MessageBox.Show("No username specified"); }
+            if (!_MainForm.radioButton1.Checked && !_MainForm.radioButton2.Checked) { MessageBox.Show("No authentication specified"); return; }
+            using (var client = new SshClient(_MainForm.textBox1.Text, _MainForm.textBox2.Text, _MainForm.getAuth()))
             {
                 var ProxyPort = new ForwardedPortDynamic("127.0.0.1", 1080);
-                if (ConnectionButton.Text == "Connect")
+                _MainForm.WriteLog("Attempting connection to " + _MainForm.textBox1.Text);
+                try
                 {
-                    WriteLog("Attempting connection to " + textBox1.Text);
-                    try
-                    {
-                        client.Connect();
-                    }
-                    catch (Exception ex)
-                    {
-                        WriteLog(ex.Message);
-                        MessageBox.Show(ex.Message);
-                    }
-                    if (client.IsConnected)
-                    {
-                        WriteLog("Connected");
-                        WriteLog("Adding SOCKS port: " + ProxyPort.BoundHost + ":" + ProxyPort.BoundPort);
-                        client.AddForwardedPort(ProxyPort);
-                        ProxyPort.Start();
-                        WriteLog("Ready for connections");
-                        ConnectionButton.Text = "Disconnect";
-                        textBox1.ReadOnly = true;
-                        textBox2.ReadOnly = true;
-                        radioButton1.Enabled = false;
-                        radioButton2.Enabled = false;
-                        textBox3.ReadOnly = true;
-                        textBox4.ReadOnly = true;
-                        textBox5.ReadOnly = true;
-
-                    }
+                    client.Connect();
                 }
-                else
+                catch (Exception ex)
                 {
+                    _MainForm.WriteLog(ex.Message);
+                    MessageBox.Show(ex.Message);
+                }
+                if (client.IsConnected)
+                {
+                    isConnected = true;
+                    _MainForm.WriteLog("Connected");
+                    _MainForm.WriteLog("Adding SOCKS port: " + ProxyPort.BoundHost + ":" + ProxyPort.BoundPort);
+                    client.AddForwardedPort(ProxyPort);
+                    ProxyPort.Start();
+                    _MainForm.WriteLog("Ready for connections");
+                    _MainForm.ConnectionButton.Text = "Disconnect";
+                    _MainForm.textBox1.ReadOnly = true;
+                    _MainForm.textBox2.ReadOnly = true;
+                    _MainForm.radioButton1.Enabled = false;
+                    _MainForm.radioButton2.Enabled = false;
+                    _MainForm.textBox3.ReadOnly = true;
+                    _MainForm.textBox4.ReadOnly = true;
+                    _MainForm.textBox5.ReadOnly = true;
+                    _MainForm.WriteLog("Setting windows proxy");
+                    RegistryKey registry = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", true);
+                    registry.SetValue("ProxyEnable", 1);
+                    registry.SetValue("ProxyServer", "socks=127.0.0.1:1080");
+                    while (isConnected)
+                    {
+                        Thread.Sleep(1000);
+                    }
                     WriteLog("Disconnecting");
+                    _MainForm.WriteLog("Setting windows proxy to default values");
+                    registry.SetValue("ProxyEnable", 0);
+                    registry.DeleteValue("ProxyServer");
                     ProxyPort.Stop();
                     client.RemoveForwardedPort(ProxyPort);
                     client.Disconnect();
-                    if (!client.IsConnected)
-                    {
-                        client.Dispose();
-                        WriteLog("Disconnected");
-                        ConnectionButton.Text = "Connect";
-                        textBox1.ReadOnly = false;
-                        textBox2.ReadOnly = false;
-                        radioButton1.Enabled = true;
-                        radioButton2.Enabled = true;
-                        textBox3.ReadOnly = false;
-                        textBox4.ReadOnly = false;
-                        textBox5.ReadOnly = false;
-                    }
-
+                    WriteLog("Disconnected");
+                    _MainForm.textBox1.ReadOnly = false;
+                    _MainForm.textBox2.ReadOnly = false;
+                    _MainForm.radioButton1.Enabled = true;
+                    _MainForm.radioButton2.Enabled = true;
+                    _MainForm.textBox3.ReadOnly = false;
+                    _MainForm.textBox4.ReadOnly = false;
+                    _MainForm.textBox5.ReadOnly = false;
+                    _MainForm.ConnectionButton.Text = "Connect";
                 }
             }
+        }
+        bool isConnected ;
+        private void ConnectionButton_Click(object sender, EventArgs e)
+        {
+            SSHConnector.DoWork += new DoWorkEventHandler(SSHConnect);
+            if(ConnectionButton.Text == "Connect")
+            {
+                SSHConnector.RunWorkerAsync();
+            }else
+            {
+                isConnected = false;
+            }
+            
 
         }
         public void WriteLog(string logString)
@@ -188,7 +208,7 @@ namespace sshTunlr
             {
                 XmlElement Password = doc.CreateElement(string.Empty, "Password", string.Empty);
                 XmlText PasswordValue = doc.CreateTextNode(System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(textBox3.Text)));
-                SavePass.AppendChild(PasswordValue);
+                Password.AppendChild(PasswordValue);
                 Config.AppendChild(Password);
             }
 
