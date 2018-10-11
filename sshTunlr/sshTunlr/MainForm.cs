@@ -28,44 +28,63 @@ namespace sshTunlr
         {
             if (textBox1.Text == string.Empty) { MessageBox.Show("No hostname specified"); return;  }
             if (textBox2.Text == string.Empty) { MessageBox.Show("No username specified"); }
-            if (!radioButton1.Checked && !radioButton2.Checked) { MessageBox.Show("No autehntication specified"); return; }
-            var client = new SshClient(textBox1.Text, textBox2.Text, getAuth());
-            var ProxyPort = new ForwardedPortDynamic("127.0.0.1", 1080);
-            if (ConnectionButton.Text == "Connect")
+            if (!radioButton1.Checked && !radioButton2.Checked) { MessageBox.Show("No authentication specified"); return; }
+            using (var client = new SshClient(textBox1.Text, textBox2.Text, getAuth()))
             {
-                WriteLog("Attempting connection to " + textBox1.Text);
-                try
+                var ProxyPort = new ForwardedPortDynamic("127.0.0.1", 1080);
+                if (ConnectionButton.Text == "Connect")
                 {
-                    client.Connect();
-                }
-                catch (Exception ex)
-                {
-                    WriteLog(ex.Message);
-                    MessageBox.Show(ex.Message);
-                }
-                if (client.IsConnected)
-                {
-                    WriteLog("Connected");
-                    WriteLog("Adding SOCKS port: " + ProxyPort.BoundHost +":" + ProxyPort.BoundPort);
-                    client.AddForwardedPort(ProxyPort);
-                    ProxyPort.Start();
-                    WriteLog("Ready for connections");
-                    ConnectionButton.Text = "Disconnect";
-                    
-                }
-            }
-            else
-            {
-                WriteLog("Disconnecting");
-                client.Disconnect();
-                ProxyPort.Stop();
-                if (!client.IsConnected)
-                {
-                    WriteLog("Disconnected");
-                    ConnectionButton.Text = "Connect";
-                }
+                    WriteLog("Attempting connection to " + textBox1.Text);
+                    try
+                    {
+                        client.Connect();
+                    }
+                    catch (Exception ex)
+                    {
+                        WriteLog(ex.Message);
+                        MessageBox.Show(ex.Message);
+                    }
+                    if (client.IsConnected)
+                    {
+                        WriteLog("Connected");
+                        WriteLog("Adding SOCKS port: " + ProxyPort.BoundHost + ":" + ProxyPort.BoundPort);
+                        client.AddForwardedPort(ProxyPort);
+                        ProxyPort.Start();
+                        WriteLog("Ready for connections");
+                        ConnectionButton.Text = "Disconnect";
+                        textBox1.ReadOnly = true;
+                        textBox2.ReadOnly = true;
+                        radioButton1.Enabled = false;
+                        radioButton2.Enabled = false;
+                        textBox3.ReadOnly = true;
+                        textBox4.ReadOnly = true;
+                        textBox5.ReadOnly = true;
 
+                    }
+                }
+                else
+                {
+                    WriteLog("Disconnecting");
+                    ProxyPort.Stop();
+                    client.RemoveForwardedPort(ProxyPort);
+                    client.Disconnect();
+                    if (!client.IsConnected)
+                    {
+                        client.Dispose();
+                        WriteLog("Disconnected");
+                        ConnectionButton.Text = "Connect";
+                        textBox1.ReadOnly = false;
+                        textBox2.ReadOnly = false;
+                        radioButton1.Enabled = true;
+                        radioButton2.Enabled = true;
+                        textBox3.ReadOnly = false;
+                        textBox4.ReadOnly = false;
+                        textBox5.ReadOnly = false;
+                    }
+
+                }
             }
+
         }
         public void WriteLog(string logString)
         {
@@ -107,7 +126,6 @@ namespace sshTunlr
             }
             else
             {
-                WriteLog("Attempting load key");
                 string key = File.ReadAllText(textBox4.Text);
                 Regex removeSubjectRegex = new Regex("Subject:.*[\r\n]+", RegexOptions.IgnoreCase);
                 key = removeSubjectRegex.Replace(key, "");
