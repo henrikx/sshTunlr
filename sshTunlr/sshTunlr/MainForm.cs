@@ -137,6 +137,10 @@ namespace sshTunlr
                 savePath = saveFileDialog.FileName;
             }
             else { return; }
+            SaveProfile(savePath);
+        }
+        private void SaveProfile (string savePath)
+        {
             XmlDocument doc = new XmlDocument();
             XmlElement root = doc.DocumentElement;
             XmlElement Config = doc.CreateElement(string.Empty, "Config", string.Empty);
@@ -157,10 +161,36 @@ namespace sshTunlr
             AuthMode.AppendChild(AuthModeValue);
             Config.AppendChild(AuthMode);
 
+            XmlElement SavePass = doc.CreateElement(string.Empty, "SavePass", string.Empty);
+            XmlText SavePassValue = doc.CreateTextNode(Convert.ToString(savePass.Checked));
+            SavePass.AppendChild(SavePassValue);
+            Config.AppendChild(SavePass);
+
+            if (savePass.Checked && radioButton1.Checked)
+            {
+                XmlElement Password = doc.CreateElement(string.Empty, "Password", string.Empty);
+                XmlText PasswordValue = doc.CreateTextNode(System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(textBox3.Text)));
+                SavePass.AppendChild(PasswordValue);
+                Config.AppendChild(Password);
+            }
+
             XmlElement KeyLocation = doc.CreateElement(string.Empty, "KeyLocation", string.Empty);
             XmlText KeyLocationValue = doc.CreateTextNode(textBox4.Text);
             KeyLocation.AppendChild(KeyLocationValue);
             Config.AppendChild(KeyLocation);
+
+            XmlElement SaveKeyPass = doc.CreateElement(string.Empty, "SaveKeyPass", string.Empty);
+            XmlText SaveKeyPassValue = doc.CreateTextNode(Convert.ToString(saveKeyPass.Checked));
+            SaveKeyPass.AppendChild(SaveKeyPassValue);
+            Config.AppendChild(SaveKeyPass);
+
+            if (saveKeyPass.Checked && radioButton2.Checked)
+            {
+                XmlElement KeyPassword = doc.CreateElement(string.Empty, "KeyPassword", string.Empty);
+                XmlText KeyPasswordValue = doc.CreateTextNode(System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(textBox5.Text)));
+                KeyPassword.AppendChild(KeyPasswordValue);
+                Config.AppendChild(KeyPassword);
+            }
 
             doc.Save(savePath);
         }
@@ -196,12 +226,25 @@ namespace sshTunlr
             {
                 radioButton2.Checked = false;
                 radioButton1.Checked = true;
+                bool passIsSaved = Convert.ToBoolean(doc.SelectSingleNode("Config/SavePass").InnerText);
+                if (passIsSaved)
+                {
+                    savePass.Checked = true;
+                    textBox3.Text = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(doc.SelectSingleNode("Config/Password").InnerText));
+                }
             }
+            
             else
             {
                 radioButton1.Checked = false;
                 radioButton2.Checked = true;
                 textBox4.Text = doc.SelectSingleNode("Config/KeyLocation").InnerText;
+                bool keyPassIsSaved = Convert.ToBoolean(doc.SelectSingleNode("Config/SaveKeyPass").InnerText);
+                if (keyPassIsSaved)
+                {
+                    saveKeyPass.Checked = true;
+                    textBox5.Text = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(doc.SelectSingleNode("Config/KeyPassword").InnerText));
+                }
             }
         }
     }

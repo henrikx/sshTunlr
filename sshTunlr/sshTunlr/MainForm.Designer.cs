@@ -48,6 +48,8 @@
             this.label5 = new System.Windows.Forms.Label();
             this.button2 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
+            this.saveKeyPass = new System.Windows.Forms.CheckBox();
+            this.savePass = new System.Windows.Forms.CheckBox();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.panel3.SuspendLayout();
@@ -141,6 +143,7 @@
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.savePass);
             this.panel2.Controls.Add(this.label3);
             this.panel2.Controls.Add(this.textBox3);
             this.panel2.Location = new System.Drawing.Point(111, 3);
@@ -168,6 +171,7 @@
             // 
             // panel3
             // 
+            this.panel3.Controls.Add(this.saveKeyPass);
             this.panel3.Controls.Add(this.label5);
             this.panel3.Controls.Add(this.textBox5);
             this.panel3.Controls.Add(this.button1);
@@ -242,6 +246,26 @@
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
+            // saveKeyPass
+            // 
+            this.saveKeyPass.AutoSize = true;
+            this.saveKeyPass.Location = new System.Drawing.Point(181, 62);
+            this.saveKeyPass.Name = "saveKeyPass";
+            this.saveKeyPass.Size = new System.Drawing.Size(51, 17);
+            this.saveKeyPass.TabIndex = 4;
+            this.saveKeyPass.Text = "Save";
+            this.saveKeyPass.UseVisualStyleBackColor = true;
+            // 
+            // savePass
+            // 
+            this.savePass.AutoSize = true;
+            this.savePass.Location = new System.Drawing.Point(167, 38);
+            this.savePass.Name = "savePass";
+            this.savePass.Size = new System.Drawing.Size(51, 17);
+            this.savePass.TabIndex = 2;
+            this.savePass.Text = "Save";
+            this.savePass.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -291,6 +315,8 @@
         private System.Windows.Forms.TextBox textBox5;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.CheckBox savePass;
+        private System.Windows.Forms.CheckBox saveKeyPass;
     }
 }
 
