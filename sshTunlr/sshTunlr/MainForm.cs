@@ -60,9 +60,9 @@ namespace sshTunlr
                     _MainForm.ConnectionButton.Text = "Disconnect";
                     _MainForm.textBox1.ReadOnly = true;
                     _MainForm.textBox2.ReadOnly = true;
+                    _MainForm.textBox3.ReadOnly = true;
                     _MainForm.radioButton1.Enabled = false;
                     _MainForm.radioButton2.Enabled = false;
-                    _MainForm.textBox3.ReadOnly = true;
                     _MainForm.textBox4.ReadOnly = true;
                     _MainForm.textBox5.ReadOnly = true;
                     _MainForm.WriteLog("Setting windows proxy");
@@ -83,9 +83,9 @@ namespace sshTunlr
                     WriteLog("Disconnected");
                     _MainForm.textBox1.ReadOnly = false;
                     _MainForm.textBox2.ReadOnly = false;
+                    _MainForm.textBox3.ReadOnly = false;
                     _MainForm.radioButton1.Enabled = true;
                     _MainForm.radioButton2.Enabled = true;
-                    _MainForm.textBox3.ReadOnly = false;
                     _MainForm.textBox4.ReadOnly = false;
                     _MainForm.textBox5.ReadOnly = false;
                     _MainForm.ConnectionButton.Text = "Connect";
