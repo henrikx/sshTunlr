@@ -26,6 +26,7 @@ namespace sshTunlr
         public const int INTERNET_OPTION_REFRESH = 37;
         static bool settingsReturn, refreshReturn;
         public static MainForm _MainForm;
+        public static ConnectionInfo connectionInfo;
         public MainForm(string path)
         {
             _MainForm = this;
@@ -43,68 +44,73 @@ namespace sshTunlr
             if (_MainForm.textBox1.Text == string.Empty) { MessageBox.Show("No hostname specified"); return; }
             if (_MainForm.textBox2.Text == string.Empty) { MessageBox.Show("No username specified"); }
             if (!_MainForm.radioButton1.Checked && !_MainForm.radioButton2.Checked) { MessageBox.Show("No authentication specified"); return; }
-            using (var client = new SshClient(_MainForm.textBox1.Text, _MainForm.textBox2.Text, _MainForm.getAuth()))
+            try
             {
-                var ProxyPort = new ForwardedPortDynamic("127.0.0.1", 1080);
-                _MainForm.WriteLog("Attempting connection to " + _MainForm.textBox1.Text);
-                try
+                using (var client = new SshClient(_MainForm.textBox1.Text, _MainForm.textBox2.Text, _MainForm.getAuth()))
                 {
+                    var ProxyPort = new ForwardedPortDynamic("127.0.0.1", 1080);
+                    _MainForm.WriteLog("Attempting connection to " + _MainForm.textBox1.Text);
                     client.Connect();
-                }
-                catch (Exception ex)
-                {
-                    _MainForm.WriteLog(ex.Message);
-                    MessageBox.Show(ex.Message);
-                }
-                if (client.IsConnected)
-                {
-                    isConnected = true;
-                    _MainForm.WriteLog("Connected");
-                    _MainForm.WriteLog("Adding SOCKS port: " + ProxyPort.BoundHost + ":" + ProxyPort.BoundPort);
-                    client.AddForwardedPort(ProxyPort);
-                    ProxyPort.Start();
-                    _MainForm.WriteLog("Ready for connections");
-                    _MainForm.ConnectionButton.Text = "Disconnect";
-                    _MainForm.textBox1.ReadOnly = true;
-                    _MainForm.textBox2.ReadOnly = true;
-                    _MainForm.textBox3.ReadOnly = true;
-                    _MainForm.radioButton1.Enabled = false;
-                    _MainForm.radioButton2.Enabled = false;
-                    _MainForm.textBox4.ReadOnly = true;
-                    _MainForm.textBox5.ReadOnly = true;
-                    _MainForm.WriteLog("Setting windows proxy");
-                    RegistryKey registry = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", true);
-                    registry.SetValue("ProxyEnable", 1);
-                    registry.SetValue("ProxyServer", "socks=127.0.0.1:1080");
-                    settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
-                    refreshReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
-                    ConnectionButton.Enabled = true;
-
-                    while (isConnected)
+                    if (client.IsConnected)
                     {
-                        Thread.Sleep(1000);
+
+                        //Connect
+                        isConnected = true;
+                        _MainForm.WriteLog("Connected");
+                        _MainForm.WriteLog("Adding SOCKS port: " + ProxyPort.BoundHost + ":" + ProxyPort.BoundPort);
+                        client.AddForwardedPort(ProxyPort);
+                        ProxyPort.Start();
+                        _MainForm.WriteLog("Ready for connections");
+                        _MainForm.ConnectionButton.Text = "Disconnect";
+                        _MainForm.textBox1.ReadOnly = true;
+                        _MainForm.textBox2.ReadOnly = true;
+                        _MainForm.textBox3.ReadOnly = true;
+                        _MainForm.radioButton1.Enabled = false;
+                        _MainForm.radioButton2.Enabled = false;
+                        _MainForm.textBox4.ReadOnly = true;
+                        _MainForm.textBox5.ReadOnly = true;
+                        _MainForm.button3.Enabled = false;
+                        _MainForm.WriteLog("Setting windows proxy");
+                        _MainForm.WriteLog("Connected");
+                        RegistryKey registry = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", true);
+                        registry.SetValue("ProxyEnable", 1);
+                        registry.SetValue("ProxyServer", "socks=127.0.0.1:1080");
+                        settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
+                        refreshReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
+                        ConnectionButton.Enabled = true;
+
+                        while (isConnected)
+                        {
+                            Thread.Sleep(1000);
+                        }
+                        //Disconnect
+                        WriteLog("Disconnecting");
+                        _MainForm.WriteLog("Setting windows proxy to default values");
+                        registry.SetValue("ProxyEnable", 0);
+                        registry.DeleteValue("ProxyServer");
+                        settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
+                        refreshReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
+                        ProxyPort.Stop();
+                        client.RemoveForwardedPort(ProxyPort);
+                        client.Disconnect();
+                        Thread.Sleep(500);
+                        WriteLog("Disconnected");
+                        _MainForm.textBox1.ReadOnly = false;
+                        _MainForm.textBox2.ReadOnly = false;
+                        _MainForm.textBox3.ReadOnly = false;
+                        _MainForm.radioButton1.Enabled = true;
+                        _MainForm.radioButton2.Enabled = true;
+                        _MainForm.textBox4.ReadOnly = false;
+                        _MainForm.textBox5.ReadOnly = false;
+                        _MainForm.button3.Enabled = true;
+                        ConnectionButton.Enabled = true;
+                        _MainForm.ConnectionButton.Text = "Connect";
                     }
-                    WriteLog("Disconnecting");
-                    _MainForm.WriteLog("Setting windows proxy to default values");
-                    registry.SetValue("ProxyEnable", 0);
-                    registry.DeleteValue("ProxyServer");
-                    settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
-                    refreshReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
-                    ProxyPort.Stop();
-                    client.RemoveForwardedPort(ProxyPort);
-                    client.Disconnect();
-                    Thread.Sleep(500);
-                    WriteLog("Disconnected");
-                    _MainForm.textBox1.ReadOnly = false;
-                    _MainForm.textBox2.ReadOnly = false;
-                    _MainForm.textBox3.ReadOnly = false;
-                    _MainForm.radioButton1.Enabled = true;
-                    _MainForm.radioButton2.Enabled = true;
-                    _MainForm.textBox4.ReadOnly = false;
-                    _MainForm.textBox5.ReadOnly = false;
-                    ConnectionButton.Enabled = true;
-                    _MainForm.ConnectionButton.Text = "Connect";
                 }
+            } catch (Exception ex)
+            {
+                _MainForm.WriteLog(ex.Message);
+                MessageBox.Show(ex.Message);
             }
         }
         bool isConnected ;
