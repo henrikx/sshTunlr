@@ -111,6 +111,16 @@ namespace sshTunlr
             {
                 _MainForm.WriteLog(ex.Message);
                 MessageBox.Show(ex.Message);
+                _MainForm.textBox1.ReadOnly = false;
+                _MainForm.textBox2.ReadOnly = false;
+                _MainForm.textBox3.ReadOnly = false;
+                _MainForm.radioButton1.Enabled = true;
+                _MainForm.radioButton2.Enabled = true;
+                _MainForm.textBox4.ReadOnly = false;
+                _MainForm.textBox5.ReadOnly = false;
+                _MainForm.button3.Enabled = true;
+                ConnectionButton.Enabled = true;
+                _MainForm.ConnectionButton.Text = "Connect";
             }
         }
         bool isConnected ;
