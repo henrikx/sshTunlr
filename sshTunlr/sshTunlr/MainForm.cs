@@ -14,11 +14,17 @@ using System.Xml;
 using System.Threading;
 using System.Diagnostics;
 using Microsoft.Win32;
+using System.Runtime.InteropServices;
 
 namespace sshTunlr
 {
     public partial class MainForm : Form
     {
+        [DllImport("wininet.dll")]
+        public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);
+        public const int INTERNET_OPTION_SETTINGS_CHANGED = 39;
+        public const int INTERNET_OPTION_REFRESH = 37;
+        static bool settingsReturn, refreshReturn;
         public static MainForm _MainForm;
         public MainForm(string path)
         {
@@ -28,6 +34,7 @@ namespace sshTunlr
             if (path != string.Empty && Path.GetExtension(path).ToLower() == ".stnlr"){
                 LoadProfile(path);
             }
+            SSHConnector.DoWork += new DoWorkEventHandler(SSHConnect);
         }
         BackgroundWorker SSHConnector = new BackgroundWorker();
         
@@ -69,6 +76,10 @@ namespace sshTunlr
                     RegistryKey registry = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings", true);
                     registry.SetValue("ProxyEnable", 1);
                     registry.SetValue("ProxyServer", "socks=127.0.0.1:1080");
+                    settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
+                    refreshReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
+                    ConnectionButton.Enabled = true;
+
                     while (isConnected)
                     {
                         Thread.Sleep(1000);
@@ -77,9 +88,12 @@ namespace sshTunlr
                     _MainForm.WriteLog("Setting windows proxy to default values");
                     registry.SetValue("ProxyEnable", 0);
                     registry.DeleteValue("ProxyServer");
+                    settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
+                    refreshReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_REFRESH, IntPtr.Zero, 0);
                     ProxyPort.Stop();
                     client.RemoveForwardedPort(ProxyPort);
                     client.Disconnect();
+                    Thread.Sleep(500);
                     WriteLog("Disconnected");
                     _MainForm.textBox1.ReadOnly = false;
                     _MainForm.textBox2.ReadOnly = false;
@@ -88,6 +102,7 @@ namespace sshTunlr
                     _MainForm.radioButton2.Enabled = true;
                     _MainForm.textBox4.ReadOnly = false;
                     _MainForm.textBox5.ReadOnly = false;
+                    ConnectionButton.Enabled = true;
                     _MainForm.ConnectionButton.Text = "Connect";
                 }
             }
@@ -95,9 +110,10 @@ namespace sshTunlr
         bool isConnected ;
         private void ConnectionButton_Click(object sender, EventArgs e)
         {
-            SSHConnector.DoWork += new DoWorkEventHandler(SSHConnect);
+            ConnectionButton.Enabled = false;
             if(ConnectionButton.Text == "Connect")
             {
+                
                 SSHConnector.RunWorkerAsync();
             }else
             {
