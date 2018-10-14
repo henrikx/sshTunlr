@@ -84,8 +84,8 @@ namespace sshTunlr
                             Thread.Sleep(1000);
                         }
                         //Disconnect
-                        WriteLog("Disconnecting");
                         _MainForm.WriteLog("Setting windows proxy to default values");
+                        WriteLog("Disconnecting");
                         registry.SetValue("ProxyEnable", 0);
                         registry.DeleteValue("ProxyServer");
                         settingsReturn = InternetSetOption(IntPtr.Zero, INTERNET_OPTION_SETTINGS_CHANGED, IntPtr.Zero, 0);
